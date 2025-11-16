@@ -1,0 +1,638 @@
+{
+  "name": "Master",
+  "nodes": [
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "P&G is WATCHING YOU",
+        "message": "={{ $json.content.parts[0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        640,
+        1840
+      ],
+      "id": "0b7293d8-4d14-4205-8791-f505bad7deab",
+      "name": "Send a message",
+      "webhookId": "728f1786-675c-40f3-adde-e6aecf40ba7d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "S2cQes2mPyYOiOb2",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash-image-preview",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash-image-preview (Nano Banana)"
+        },
+        "prompt": "={{ $json.prompt }}\n\n图片做小一点。500kb以内。",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        864,
+        2128
+      ],
+      "id": "cb6d0dc1-7ed0-4081-bd85-cdbf982da410",
+      "name": "Generate an image2",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6Uiiqmca6VdsSyud",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash-lite"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.content.parts[0].text }}\n\n根据这些信息生成一个或者多个营销邮件模板。\n\n邮件格式是html，给手机端优化。\n\n邮件数量取决于信息里包含的国家、地区，按照不同语言生成。不管有没有指明，都最少生成英语+芬兰语的两个版本。\n\n邮件里要有至少一个图片，可以有更多，最多四个。\n\n图片现在只是占位符，我后续会通过接入其他模型生成。\n\n直接输出json字符串格式。字符串中包含，邮件模板列表，和要生成的图片的prompt列表，我后续会给其他模型使用。还要标记html图片的占位符和要生成的图片的关系，后面我生成完成后，要拼接回来。\n\n输出的格式是：\n[{ \"language\": \"\", \"subject\": \"\", \"body_html\": \"\", \"image_prompts\": [{ \"image_placeholder\": \"\", \"prompt\": \"\" }] }]\n\n数组的每个item代表一个邮件。 每个item中的image_prompts，是当前邮件用到的图片的占位符。\n\n保证占位符全剧唯一。\n\n强调：直接输出我需要的对应的json字符串，不要有其他markdown等信息。"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        2064
+      ],
+      "id": "35c965c5-65fb-4784-be7a-4002034db610",
+      "name": "生成模板+图片占位符",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6Uiiqmca6VdsSyud",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return JSON.parse($input.first().json.content.parts[0].text)"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        2064
+      ],
+      "id": "928a307d-5cce-45af-8aa5-e93485024f76",
+      "name": "Code in JavaScript",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.html_fulldata.html }}\n\n这是一个html模板。\n\n{{ $json.html_fulldata.imgs.toJsonString() }}\n这是一个可用的图片链接和说明列表。其中的url链接，不可以更改，要直接引用在HTML文件中。谁改谁傻逼。\n\n同一个html文件里，不要用重复的图片url。\n\n给图片添加到html里，完全替换掉原来模板中描述图片占位符的所有块元素。之后优化排版，确保没有语法错误。\n\n检查生成的HTML文档，确保其中的图片src地址，是我给你的可用图片列表中的URL，不要随便生成，不要上网查找，只用我给你的。\n\n直接返回可用的HTML文档。不要写markdown等其他非法字符。不要添加额外的换行符。输出的结果不要添加其他层级和字段，直接<!DOCTYPE html>开头的text。"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        2864,
+        2128
+      ],
+      "id": "5c717b15-b2f5-4e3c-a6c2-edd7c6e6c087",
+      "name": "生成模板+图片占位符1",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6Uiiqmca6VdsSyud",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "image_generated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2416,
+        2064
+      ],
+      "id": "f790cb01-9540-40be-addc-d9fcf54f49ec",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        416,
+        2064
+      ],
+      "id": "ed545007-9a8c-44ac-88c9-b440a47df032",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "image_prompts",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        640,
+        2128
+      ],
+      "id": "d9cc3306-fecc-4422-a5b9-06526c56cea7",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "image_generated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        2128
+      ],
+      "id": "3524f736-8c2a-4e86-a372-3836eb8a3f64",
+      "name": "Aggregate2"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2192,
+        2064
+      ],
+      "id": "a7fbb6e8-a1ad-4891-b16d-578c6f70976b",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const img = $input.first().json.image_generated[0]\n\nconst res = {html_fulldata: {\n  language: img.language,\n  subject : img.subject,\n  html: img.body_html,\n  imgs: img.image_prompts.map((item,index)=>{\n    return{\n      image_placeholder: item.image_placeholder,\n      prompt: item.prompt,\n      url: img.image_generated[index].url\n    }\n  })\n}}\n\nreturn res"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        2064
+      ],
+      "id": "86ff5800-4575-4d5f-90f0-8a56090e02c4",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "resource": "object",
+        "operation": "create",
+        "bucketName": "junction-changlu",
+        "objectName": "={{ $json.fileName }}",
+        "createData": {},
+        "createQuery": {},
+        "encryptionHeaders": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.googleCloudStorage",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        2128
+      ],
+      "id": "95d77184-9444-4faf-a4e3-594b56329ca2",
+      "name": "Create an object",
+      "retryOnFail": true,
+      "credentials": {
+        "googleCloudStorageOAuth2Api": {
+          "id": "pxcVHA3SIRAs0K08",
+          "name": "Google Cloud Storage account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst updatedItems = items.map((item) => {\n  const timestamp = Date.now();\n  const randomNum = Math.floor(Math.random() * 1000);\n  const newFileName = `${timestamp}${randomNum}.png`;\n  item.json.fileName = newFileName;\n  return item;\n});\nreturn updatedItems;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        2128
+      ],
+      "id": "e8ad87de-eaaa-4369-878d-a8e61da08a06",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nconst res = []\nfor (const item of $input.all()) {\n  res.push({\n    url: `https://storage.googleapis.com/junction-changlu/` + item.json.name\n  })\n}\n\nreturn res;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        2128
+      ],
+      "id": "37eed9f1-d52d-4b74-a3ae-435cd1bc07b6",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "marketing-generate-send",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -960,
+        2064
+      ],
+      "id": "49eb157a-4270-4019-90db-f254db50cda1",
+      "name": "Webhook",
+      "webhookId": "d2abcce8-bda0-4f42-8f74-a0469d9fd2bc"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e4372916-0ad5-4aae-9486-a01463b8ad45",
+              "leftValue": "={{ $binary.file.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -736,
+        2064
+      ],
+      "id": "b98707a5-471f-4904-8a9a-e40c62635970",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash-lite"
+        },
+        "text": "You are a CRM & lifecycle marketing expert.\n\nYour task:\nGiven the full text of a marketing plan, extract a structured JSON summary that will be used to generate multi-market, multi-language email variants. \nThis version also captures all image-related requirements found or implied in the document.\n\nYour output must be a single valid JSON object and nothing else.\nNo explanations. No markdown. No comments. Only pure JSON.\n\n----------------------------\nINPUT DOCUMENT\n----------------------------\n{{PLAN_TEXT}}\n----------------------------\n\nExtract all information using this schema:\n\n{\n  \"campaign_name\": \"\",\n  \"campaign_type\": \"\",\n  \"brand_or_program\": \"\",\n  \"product_or_offer\": \"\",\n\n  \"overall_objective\": \"\",\n  \"target_audience_text\": \"\",\n\n  \"markets\": [],\n  \"languages\": [],\n\n  \"market_language_requirements\": [\n    {\n      \"market\": \"\",\n      \"languages\": [],\n      \"emphasis_points\": [],\n      \"regulatory_or_cultural_notes\": \"\",\n      \"image_requirements\": {             \n        \"needs_localized_images\": false,  \n        \"preferred_image_styles\": [],      \n        \"forbidden_elements\": [],         \n        \"mandatory_elements\": [],          \n        \"notes\": \"\"                        \n      },\n      \"notes\": \"\"\n    }\n  ],\n\n  \"key_messages\": [],\n\n  \"tone_of_voice\": [],\n  \"mentions_other_channels\": false,\n\n  \"email_requirements\": {\n    \"num_variants_desired\": null,\n    \"personalisation_needed\": \"\",\n    \"important_constraints\": \"\",\n    \"general_image_guidelines\": {                    \n      \"recommended_image_types\": [],                \n      \"tone_or_mood\": \"\",                           \n      \"mandatory_brand_elements\": [],               \n      \"image_copy_integration_notes\": \"\"            \n    }\n  },\n\n  \"email_blueprints\": [\n    {\n      \"id\": \"\",\n      \"market\": \"\",\n      \"language\": \"\",\n      \"audience_segment\": \"\",\n      \"purpose\": \"\",\n      \"tone_override\": \"\",\n      \"cta_goal\": \"\",\n      \"emphasis_points\": [],\n\n      \"image_blueprint\": {                         \n        \"image_needed\": false,\n        \"image_purpose\": \"\",                        \n        \"image_style\": \"\",                          \n        \"image_subject\": \"\",                        \n        \"recommended_elements\": [],                 \n        \"forbidden_elements\": [],                   \n        \"example_reference_from_plan\": \"\"           \n      },\n\n      \"special_instructions\": \"\"\n    }\n  ],\n\n  \"notes\": \"\",\n  \"missing_info\": []\n}\n\nRules:\n- If any field is not present in the input, set it to \"\" or null or [] depending on type.\n- “emphasis_points” appear both at market level and blueprint level.\n- For all image-related fields:\n  - Capture anything the document implies about images, visuals, creative directions, cultural differences, restrictions, etc.\n  - If the plan references specific example visuals, summarize them in “example_reference_from_plan”.\n- \"markets\" and \"languages\" must be deduplicated.\n- Add human-readable questions to \"missing_info\" for anything needed to produce good email and image variants but missing from the plan.\n- Output ONLY a single valid JSON object with no additional text.",
+        "inputType": "binary",
+        "binaryPropertyName": "file",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        1968
+      ],
+      "id": "fdefd3c4-17f7-4dbb-9a25-5e83db32bcfc",
+      "name": "Analyze plan by file",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6Uiiqmca6VdsSyud",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash-lite"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a CRM & lifecycle marketing expert.\n\nYour task:\nGiven the full text of a marketing plan, extract a structured JSON summary that will be used to generate multi-market, multi-language email variants. \nThis version also captures all image-related requirements found or implied in the document.\n\nYour output must be a single valid JSON object and nothing else.\nNo explanations. No markdown. No comments. Only pure JSON.\n\n----------------------------\nINPUT DOCUMENT\n----------------------------\n{{PLAN_TEXT}}\n----------------------------\n\nExtract all information using this schema:\n\n{\n  \"campaign_name\": \"\",\n  \"campaign_type\": \"\",\n  \"brand_or_program\": \"\",\n  \"product_or_offer\": \"\",\n\n  \"overall_objective\": \"\",\n  \"target_audience_text\": \"\",\n\n  \"markets\": [],\n  \"languages\": [],\n\n  \"market_language_requirements\": [\n    {\n      \"market\": \"\",\n      \"languages\": [],\n      \"emphasis_points\": [],\n      \"regulatory_or_cultural_notes\": \"\",\n      \"image_requirements\": {             \n        \"needs_localized_images\": false,  \n        \"preferred_image_styles\": [],      \n        \"forbidden_elements\": [],         \n        \"mandatory_elements\": [],          \n        \"notes\": \"\"                        \n      },\n      \"notes\": \"\"\n    }\n  ],\n\n  \"key_messages\": [],\n\n  \"tone_of_voice\": [],\n  \"mentions_other_channels\": false,\n\n  \"email_requirements\": {\n    \"num_variants_desired\": null,\n    \"personalisation_needed\": \"\",\n    \"important_constraints\": \"\",\n    \"general_image_guidelines\": {                    \n      \"recommended_image_types\": [],                \n      \"tone_or_mood\": \"\",                           \n      \"mandatory_brand_elements\": [],               \n      \"image_copy_integration_notes\": \"\"            \n    }\n  },\n\n  \"email_blueprints\": [\n    {\n      \"id\": \"\",\n      \"market\": \"\",\n      \"language\": \"\",\n      \"audience_segment\": \"\",\n      \"purpose\": \"\",\n      \"tone_override\": \"\",\n      \"cta_goal\": \"\",\n      \"emphasis_points\": [],\n\n      \"image_blueprint\": {                         \n        \"image_needed\": false,\n        \"image_purpose\": \"\",                        \n        \"image_style\": \"\",                          \n        \"image_subject\": \"\",                        \n        \"recommended_elements\": [],                 \n        \"forbidden_elements\": [],                   \n        \"example_reference_from_plan\": \"\"           \n      },\n\n      \"special_instructions\": \"\"\n    }\n  ],\n\n  \"notes\": \"\",\n  \"missing_info\": []\n}\n\nRules:\n- If any field is not present in the input, set it to \"\" or null or [] depending on type.\n- “emphasis_points” appear both at market level and blueprint level.\n- For all image-related fields:\n  - Capture anything the document implies about images, visuals, creative directions, cultural differences, restrictions, etc.\n  - If the plan references specific example visuals, summarize them in “example_reference_from_plan”.\n- \"markets\" and \"languages\" must be deduplicated.\n- Add human-readable questions to \"missing_info\" for anything needed to produce good email and image variants but missing from the plan.\n- Output ONLY a single valid JSON object with no additional text.",
+              "role": "model"
+            },
+            {
+              "content": "={{ $json.body.brief }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        2160
+      ],
+      "id": "c4c79935-cc19-46dd-9d3b-d4749a327194",
+      "name": "Analyze plan by text",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6Uiiqmca6VdsSyud",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet nonZeroFile = null;\n\nconst updatedItems = items.map((item) => {\n  if (item?.binary?.fileSize === \"0\") {\n    if (nonZeroFile) {\n      item.binary = nonZeroFile;\n    }\n  } else {\n    nonZeroFile = item.binary;\n  }\n  return item;\n});\n\nreturn updatedItems;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        2128
+      ],
+      "id": "f73e6117-198e-4b06-a7ab-74f6b26bca34",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "生成模板+图片占位符": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Generate an image2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "生成模板+图片占位符1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成模板+图片占位符1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Create an object",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an object": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Aggregate2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Analyze plan by file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analyze plan by text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze plan by file": {
+      "main": [
+        [
+          {
+            "node": "生成模板+图片占位符",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze plan by text": {
+      "main": [
+        [
+          {
+            "node": "生成模板+图片占位符",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "03825e33-b900-486b-b237-b8e4ffee1095",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2644eb5afbd4aaa45e0e2d26cdd4a448c7d51fe8eee05a4b70beb04f7fdc5252"
+  },
+  "id": "9cg0vPyhhG2sL97I",
+  "tags": []
+}
