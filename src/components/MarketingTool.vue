@@ -102,7 +102,6 @@ const submitRequest = async () => {
       <div class="header">
         <div class="icon">✨</div>
         <h1 class="title">AI Marketing Email Generator</h1>
-        <p class="subtitle">Generate multi-language marketing emails powered by AI</p>
       </div>
 
       <!-- Success Message -->
@@ -168,6 +167,11 @@ const submitRequest = async () => {
           </label>
         </div>
 
+        <!-- Examples Link -->
+        <p class="examples-link">
+          <a href="/examples" target="_blank">View Examples</a>
+        </p>
+
         <!-- Submit Button -->
         <button @click="submitRequest" class="submit-btn" :disabled="!canSubmit">
           <span v-if="loading" class="loading-spinner">⏳</span>
@@ -188,9 +192,11 @@ const submitRequest = async () => {
   width: 100%;
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .container {
@@ -198,7 +204,7 @@ const submitRequest = async () => {
   width: 100%;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 24px;
-  padding: 40px;
+  padding: 30px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(20px);
 }
@@ -206,12 +212,12 @@ const submitRequest = async () => {
 /* Header */
 .header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 15px;
 }
 
 .icon {
-  font-size: 4rem;
-  margin-bottom: 20px;
+  font-size: 2.5rem;
+  margin-bottom: 12px;
   animation: float 3s ease-in-out infinite;
 }
 
@@ -228,20 +234,14 @@ const submitRequest = async () => {
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 1.5rem;
   color: #1a202c;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   font-weight: 700;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-.subtitle {
-  font-size: 1rem;
-  color: #64748b;
-  margin: 0;
 }
 
 /* Success Message */
@@ -348,7 +348,7 @@ const submitRequest = async () => {
 }
 
 .form-group {
-  margin-bottom: 25px;
+  margin-bottom: 18px;
 }
 
 .form-label {
@@ -496,6 +496,26 @@ const submitRequest = async () => {
   font-size: 1rem;
   color: #64748b;
   font-weight: 500;
+}
+
+/* Examples Link */
+.examples-link {
+  text-align: center;
+  margin-top: 15px;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.examples-link a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.examples-link a:hover {
+  color: #764ba2;
+  text-decoration: underline;
 }
 
 /* Submit Button */
