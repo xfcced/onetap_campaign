@@ -2,7 +2,7 @@
 
 A simple single-page application for generating AI-powered marketing emails in multiple locales.
 
-**Live Demo**: https://juction.luchang.xyz
+**Live Demo**: https://junction.luchang.xyz
 
 ## Features
 
