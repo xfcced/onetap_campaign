@@ -2,6 +2,8 @@
 
 A simple single-page application for generating AI-powered marketing emails in multiple locales.
 
+**Live Demo**: https://juction.luchang.xyz
+
 ## Features
 
 - Generate marketing emails based on campaign briefs
@@ -12,85 +14,34 @@ A simple single-page application for generating AI-powered marketing emails in m
 
 ## Technology Stack
 
-- **Frontend Framework**: Vue 3 with Composition API
-- **Language**: TypeScript
-- **Build Tool**: Vite
-- **Styling**: Pure CSS (no UI libraries)
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v16 or higher recommended)
-- npm or yarn
-
-### Installation
-
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-### Development
-
-Run the development server:
-
-```bash
-npm run dev
-```
-
-The application will be available at `http://localhost:5173` (or another port if 5173 is in use).
-
-### Build for Production
-
-Build the application:
-
-```bash
-npm run build
-```
-
-The built files will be in the `dist` directory.
-
-### Preview Production Build
-
-Preview the production build locally:
-
-```bash
-npm run preview
-```
+- **Frontend**: Vue 3, TypeScript, Vite
+- **Backend**: n8n AI workflow with Gemini agents and GCP
 
 ## Usage
 
 1. **Enter Marketing Brief**: Provide campaign details, target audience, and key messages
 2. **Upload PDF (Optional)**: Add supporting documents if needed
 3. **Generate Emails**: Click "Generate Emails" to create variants for different locales
-4. **Preview**: Switch between locale tabs to preview each version
-5. **Refine**: Add additional instructions and regenerate if needed
-6. **Send**: Enter recipient email and send all variants
+4. **Send**: Enter recipient email and send all variants
 
-## API Configuration
+## Backend & AI Integration
 
-Update the webhook URLs in `src/components/MarketingTool.vue`:
+This project uses a powerful backend workflow orchestrated by **n8n**, integrating Google's AI and communication services.
 
-- `GENERATE_URL`: Endpoint for generating email variants
-- `CONFIRM_URL`: Endpoint for sending emails
+![workflow](./doc/workflow.png 'workflow')
 
-## Project Structure
+### Architecture
 
-```
-├── index.html
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── src/
-    ├── main.ts
-    ├── style.css
-    ├── App.vue
-    └── components/
-        └── MarketingTool.vue
-```
+1.  **n8n Workflow**: The core logic is handled by an n8n workflow (configuration available in `n8n_config.json`).
+2.  **Google Gemini**: We utilize the **Gemini Pro** model (via Google AI Studio) to generate high-quality, context-aware marketing copy and HTML email templates in multiple languages.
+3.  **Google Workspace (Gmail)**: The generated emails are automatically sent to the recipient using the Gmail API.
 
-## License
+### Setup
 
-MIT
+To deploy the backend:
+
+1.  **n8n**: Import `n8n_config.json` into your n8n instance.
+2.  **Credentials**:
+    - **Google Gemini API**: Obtain an API key from Google AI Studio and configure the `googlePalmApi` credential in n8n.
+    - **Gmail OAuth2**: Set up a project in Google Cloud Console, enable the Gmail API, and create OAuth2 credentials. Configure the `gmailOAuth2` credential in n8n.
+3.  **Webhook**: Ensure the n8n Webhook node URL matches the `GENERATE_AND_SEND_URL` in the frontend code.
